@@ -1,0 +1,1 @@
+aws cloudformation create-stack --stack-name iip-bucket --template-body file://./stack.yml --capabilities CAPABILITY_NAMED_IAM --profile vo --region ap-southeast-1

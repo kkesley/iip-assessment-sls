@@ -1,0 +1,78 @@
+type Query {
+	listBlogs(category_id: String, nextToken: String): BlogConnection
+    showBlog(resource_id: String!): Blog
+    listVideos(category_id: String, nextToken: String): VideoConnection
+    showVideo(resource_id: String!): Video
+    listComments(status: String, nextToken: String): CommentConnection
+}
+
+type Mutation {
+    createComment(status: String, name: String!, email: String!, content: String!, resource_id: String!, resource_type: String!): Comment!
+}
+
+type VideoConnection {
+    items: [Video!]!
+    next_token: String
+}
+
+type Video {
+	status: String!
+	timestamp: String!
+	resource_id: String!
+	category: String
+    category_id: String
+    tags: [String!]
+    title: String
+    title_lower: String
+    published: Boolean
+    updated_at: String
+    total_views: Int
+    video_url: String
+    poster_url: String
+    total_comments: Int    
+}
+
+type BlogConnection {
+    items: [Blog!]!
+    next_token: String
+}
+
+type Blog {
+	status: String!
+	timestamp: String!
+	resource_id: String!
+	category: String
+    category_id: String
+    tags: [String!]
+    title: String
+    title_lower: String
+    published: Boolean
+    updated_at: String
+    total_views: Int
+    media_type: String
+    media_url: String
+    poster_url: String
+    content: String
+    total_comments: Int    
+}
+
+type CommentConnection {
+    items: [Comment!]!
+    next_token: String
+}
+
+type Comment {
+    status: String!
+    timestamp: String!
+    resource_id: String!
+    resource_type: String!
+    content: String!
+    email: String!
+    name: String!
+    total_comments: Int
+}
+
+schema {
+	query: Query
+    mutation: Mutation
+}

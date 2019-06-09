@@ -1,0 +1,17 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  ApiDeploymentBucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration: 
+          - ServerSideEncryptionByDefault: 
+              SSEAlgorithm: AES256
+Outputs:
+  ApiDeploymentBucket:
+    Description: Bucket containing API Deployments
+    Value: !Ref ApiDeploymentBucket
+    Export:
+      Name: !Join
+        - "-"
+        - [!Ref "AWS::StackName", "api-deployment-bucket"]
