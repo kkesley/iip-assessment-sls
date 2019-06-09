@@ -1,0 +1,44 @@
+service:
+  name: iip-question
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-southeast-1'}
+  profile: vo
+  deploymentBucket:
+    name: ${cf:vo-bucket.ApiDeploymentBucket}
+    serverSideEncryption: AES256
+  deploymentPrefix: question
+
+resources:
+  Resources:
+    QuestionTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        SSESpecification:
+          SSEEnabled: true
+        AttributeDefinitions:
+          - AttributeName: survey_id
+            AttributeType: S
+          - AttributeName: question_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: survey_id
+            KeyType: HASH
+          - AttributeName: question_id
+            KeyType: RANGE
+  Outputs:
+    QuestionsTableArn:
+      Description: The ARN for the Question's Table
+      Value:
+        "Fn::GetAtt": [ QuestionTable, Arn ]
+      Export:
+        Name: ${self:service}:${self:provider.stage}:QuestionsTableArn
+    QuestionsTableName:
+      Value:
+        Ref: QuestionTable
+      Description: The Name for the Question's Table
+      Export:
+        Name: ${self:service}:${self:provider.stage}:QuestionsTableName

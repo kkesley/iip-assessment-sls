@@ -1,0 +1,40 @@
+service:
+  name: iip-result
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-southeast-1'}
+  profile: vo
+  deploymentBucket:
+    name: ${cf:vo-bucket.ApiDeploymentBucket}
+    serverSideEncryption: AES256
+  deploymentPrefix: result
+
+resources:
+  Resources:
+    ResultTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        BillingMode: PAY_PER_REQUEST
+        SSESpecification:
+          SSEEnabled: true
+        AttributeDefinitions:
+          - AttributeName: session_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: session_id
+            KeyType: HASH
+  Outputs:
+    ResultsTableArn:
+      Description: The ARN for the Result's Table
+      Value:
+        "Fn::GetAtt": [ ResultTable, Arn ]
+      Export:
+        Name: ${self:service}:${self:provider.stage}:ResultsTableArn
+    ResultsTableName:
+      Value:
+        Ref: ResultTable
+      Description: The Name for the Result's Table
+      Export:
+        Name: ${self:service}:${self:provider.stage}:ResultsTableName
