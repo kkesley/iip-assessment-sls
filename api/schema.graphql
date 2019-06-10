@@ -12,12 +12,14 @@ type SessionResultConnection {
 }
 
 type Result {
-    #TODO: WHAT IS THE DATA STRUCTURE OF RESULTS?
+    scale: String!
+    score_number: [Float]
+    score_text: [String]
 }
 
 type SessionResult {
 	session_id: String!
-    result: Result!
+    results: [Result!]
 }
 
 type AnswerConnection {
