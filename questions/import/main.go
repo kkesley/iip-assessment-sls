@@ -10,9 +10,15 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 )
 
-func handler(event events.S3Event) error {
+//App contains dependencies for the functions
+type App struct {
+	S3Service s3iface.S3API
+}
+
+func (app App) handler(event events.S3Event) error {
 	if len(event.Records) < 0 {
 		fmt.Println("no records")
 		return nil
@@ -26,8 +32,7 @@ func handler(event events.S3Event) error {
 	}
 
 	//download the content of the file that triggers the event
-	svc := s3.New(session.New())
-	s3Output, err := svc.GetObject(&s3.GetObjectInput{
+	s3Output, err := app.S3Service.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(record.S3.Bucket.Name),
 		Key:    aws.String(key),
 	})
@@ -44,9 +49,11 @@ func handler(event events.S3Event) error {
 		Content: buf.Bytes(),
 		Key:     key,
 	})
-
 }
 
 func main() {
-	lambda.Start(handler)
+	app := App{
+		S3Service: s3.New(session.New()),
+	}
+	lambda.Start(app.handler)
 }
