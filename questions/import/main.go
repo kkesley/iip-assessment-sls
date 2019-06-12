@@ -7,14 +7,17 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 )
 
 //App contains dependencies for the functions
 type App struct {
-	S3Service s3iface.S3API
-	ImportFn  func(request Request) error
+	S3Service     s3iface.S3API
+	DynamoService dynamodbiface.DynamoDBAPI
+	ImportFn      func(request Request) error
 }
 
 func (app App) handler(event events.S3Event) error {
@@ -52,9 +55,11 @@ func (app App) handler(event events.S3Event) error {
 }
 
 func main() {
+	sess := session.New()
 	app := App{
-		S3Service: s3.New(session.New()),
-		ImportFn:  Import,
+		S3Service:     s3.New(sess),
+		DynamoService: dynamodb.New(sess),
+		ImportFn:      Import,
 	}
 	lambda.Start(app.handler)
 }
