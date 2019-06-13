@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/url"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
@@ -18,6 +20,23 @@ type App struct {
 	S3Service     s3iface.S3API
 	DynamoService dynamodbiface.DynamoDBAPI
 	ImportFn      func(request Request) error
+}
+
+func downloadFile(svc s3iface.S3API, bucket string, key string) ([]byte, error) {
+	//download the content of the file that triggers the event
+	s3Output, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	//turn GetObjectOutput into []byte
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(s3Output.Body)
+
+	return buf.Bytes(), nil
 }
 
 func (app App) handler(event events.S3Event) error {
@@ -34,7 +53,7 @@ func (app App) handler(event events.S3Event) error {
 	}
 
 	//download the content of the file that triggers the event
-	file, err := app.DownloadFile(record.S3.Bucket.Name, key)
+	file, err := downloadFile(app.S3Service, record.S3.Bucket.Name, key)
 	if err != nil {
 		return err
 	}

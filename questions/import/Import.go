@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/google/uuid"
+	"github.com/thoas/go-funk"
 )
 
 //GetQuestions get all questions for a survey in dynamodb
@@ -32,12 +34,15 @@ func GetQuestions(app App, surveyID string) ([]Question, error) {
 		TableName: aws.String(os.Getenv("QUESTION_TABLE")),
 	}
 	questions := make([]Question, 0)
+	//query all questions for a given surveyID
 	if err := app.DynamoService.QueryPages(params, queryHandler(&questions)); err != nil {
 		return nil, err
 	}
 	return questions, nil
 }
 
+//queryHandler returns a handle for dynamodb.QueryPages in `GetQuestions`.
+//it also populate *[]Question from the arguments based on the results.
 func queryHandler(questions *[]Question) func(page *dynamodb.QueryOutput, lastPage bool) bool {
 	// Unmarshal the slice of dynamodb attribute values
 	// into a slice of Question structs
@@ -65,10 +70,158 @@ func Import(request Request) error {
 		return err
 	}
 	for _, sheet := range file.GetSheetMap() {
-		surveyID := strings.TrimSpace(file.GetCellValue(sheet, "B1"))
-		if len(surveyID) <= 0 {
-			surveyID = uuid.New().String()
+		importSingleSheet(request, file, sheet)
+	}
+	return nil
+}
+
+//importSingleSheet process a single sheet from `Import`
+func importSingleSheet(request Request, file *excelize.File, sheet string) error {
+	surveyID := strings.TrimSpace(file.GetCellValue(sheet, "B1"))
+	oldQuestions := make([]Question, 0)
+	newQuestions := make([]Question, 0)
+
+	//get old questions from dynamodb
+	if len(surveyID) > 0 {
+		questionsOutput, err := GetQuestions(request.App, surveyID)
+		if err != nil {
+			return err
+		}
+		oldQuestions = questionsOutput
+	} else {
+		surveyID = uuid.New().String()
+	}
+
+	//get new questions from excel
+	rows := file.GetRows(sheet)
+	for rowIdx, row := range rows {
+		//ignore headers and unrelated data. Row should start at index 2 (3rd row)
+		if rowIdx <= 2 {
+			continue
+		}
+		rowQuestion := Question{
+			SurveyID: surveyID,
+		}
+		//iterate columns in a row
+		for colIdx, colValue := range row {
+			value := strings.TrimSpace(colValue)
+			switch colIdx {
+			case 0:
+				rowQuestion.QuestionText = value
+			case 1:
+				rowQuestion.Scale = strings.ToUpper(value)
+			case 2:
+				rowQuestion.QuestionID = value
+			}
+		}
+		if len(rowQuestion.QuestionID) <= 0 {
+			rowQuestion.QuestionID = uuid.New().String()
+		}
+		newQuestions = append(newQuestions, rowQuestion)
+	}
+
+	//write new question
+	if err := saveNewQuestions(request, newQuestions); err != nil {
+		return err
+	}
+
+	//identify deleted questions by comparing newQuestions and oldQuestions
+	questionsForDeletion := registerOldQuestionsForDeletion(oldQuestions, newQuestions)
+	if len(questionsForDeletion) > 0 {
+		if err := deleteUnusedQuestions(request, questionsForDeletion); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func deleteUnusedQuestions(request Request, questionsForDeletion []Question) error {
+	writeRequests := make([]*dynamodb.WriteRequest, 0)
+	for _, question := range questionsForDeletion {
+		writeRequest, err := dynamodbattribute.MarshalMap(Question{
+			SurveyID:   question.SurveyID,
+			QuestionID: question.QuestionID,
+		})
+		if err != nil {
+			return err
+		}
+		writeRequests = append(writeRequests, &dynamodb.WriteRequest{
+			DeleteRequest: &dynamodb.DeleteRequest{
+				Key: writeRequest,
+			},
+		})
+	}
+	writeRequestsChunks := funk.Chunk(writeRequests, 25).([][]*dynamodb.WriteRequest)
+	for _, chunk := range writeRequestsChunks {
+		output, err := request.App.DynamoService.BatchWriteItem(&dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]*dynamodb.WriteRequest{
+				os.Getenv("QUESTION_TABLE"): chunk,
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if len(output.UnprocessedItems) > 0 {
+			return errors.New("There's an unprocessed item in `deleteUnusedQuestion`")
 		}
 	}
 	return nil
+}
+
+func saveNewQuestions(request Request, newQuestions []Question) error {
+	writeRequests := make([]*dynamodb.WriteRequest, 0)
+	for _, question := range newQuestions {
+		writeRequest, err := dynamodbattribute.MarshalMap(question)
+		if err != nil {
+			return err
+		}
+		writeRequests = append(writeRequests, &dynamodb.WriteRequest{
+			PutRequest: &dynamodb.PutRequest{
+				Item: writeRequest,
+			},
+		})
+	}
+	writeRequestsChunks := funk.Chunk(writeRequests, 25).([][]*dynamodb.WriteRequest)
+	for _, chunk := range writeRequestsChunks {
+		output, err := request.App.DynamoService.BatchWriteItem(&dynamodb.BatchWriteItemInput{
+			RequestItems: map[string][]*dynamodb.WriteRequest{
+				os.Getenv("QUESTION_TABLE"): chunk,
+			},
+		})
+		if err != nil {
+			return err
+		}
+		if len(output.UnprocessedItems) > 0 {
+			return errors.New("There's an unprocessed item in `saveNewQuestions`")
+		}
+	}
+	return nil
+}
+
+//registerOldQuestionsForDeletion compare oldQuestions and newQuestions.
+//Then give an array of questions which is a subset of oldQuestions.
+//Every item in the returned array is not available in the newQuestions. Therefore, we should delete it.
+func registerOldQuestionsForDeletion(oldQuestions []Question, newQuestions []Question) []Question {
+	questionsForDeletion := make([]Question, 0)
+
+	//early termination if no old questions exist
+	if len(oldQuestions) <= 0 {
+		return questionsForDeletion
+	}
+
+	//generate map of new question IDs to make comparison more efficient
+	newQuestionIDs := make(map[string]Question)
+	for _, question := range newQuestions {
+		newQuestionIDs[question.QuestionID] = question
+	}
+	//for each old question, check whether it exists in newQuestions by comparing it to the map we just created
+	for _, question := range oldQuestions {
+		//if the old question does not exist in the new questions, register the questions for deletion.
+		if _, ok := newQuestionIDs[question.QuestionID]; !ok {
+			questionsForDeletion = append(questionsForDeletion, question)
+		}
+	}
+
+	return questionsForDeletion
 }
