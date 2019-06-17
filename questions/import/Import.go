@@ -4,13 +4,16 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/360EntSecGroup-Skylar/excelize"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/google/uuid"
 	"github.com/thoas/go-funk"
 )
@@ -72,7 +75,25 @@ func Import(request Request) error {
 	for _, sheet := range file.GetSheetMap() {
 		importSingleSheet(request, file, sheet)
 	}
-	return nil
+
+	//save updated excel to s3.
+	return saveUpdatedExcel(request, file)
+}
+
+func saveUpdatedExcel(request Request, file *excelize.File) error {
+	var buffer bytes.Buffer
+	file.Write(&buffer)
+	_, err := request.App.S3Service.PutObject(&s3.PutObjectInput{
+		Bucket:               aws.String(request.Bucket),
+		Key:                  aws.String("__processed/" + request.Key),
+		ACL:                  aws.String("private"),
+		Body:                 bytes.NewReader(buffer.Bytes()),
+		ContentLength:        aws.Int64(int64(len(buffer.Bytes()))),
+		ContentType:          aws.String(http.DetectContentType(buffer.Bytes())),
+		ContentDisposition:   aws.String("attachment"),
+		ServerSideEncryption: aws.String("AES256"),
+	})
+	return err
 }
 
 //importSingleSheet process a single sheet from `Import`
@@ -133,6 +154,16 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 		}
 	}
 
+	//update the excel sheet to have _ID in it.
+	return updateExcelSheet(request, newQuestions, surveyID, file, sheet)
+}
+
+func updateExcelSheet(request Request, newQuestions []Question, surveyID string, file *excelize.File, sheet string) error {
+	file.SetCellValue(sheet, "C2", "__ID[AUTO GENERATED.DO NOT EDIT.]")
+	questionStartingRowIndex := 3
+	for i, question := range newQuestions {
+		file.SetCellValue(sheet, "C"+strconv.Itoa(questionStartingRowIndex+i), question.QuestionID)
+	}
 	return nil
 }
 
