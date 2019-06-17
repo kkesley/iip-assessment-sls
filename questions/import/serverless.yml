@@ -1,0 +1,65 @@
+#DEPENDENCIES (deploy them before deploying this infrastructure):
+# 1. /api/question/serverless.yml
+service:
+  name: iip-fn-import
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'ap-southeast-1'}
+  profile: vo
+  deploymentBucket:
+    name: ${cf:vo-bucket.ApiDeploymentBucket}
+    serverSideEncryption: AES256
+  deploymentPrefix: fn/import
+
+functions:
+  import:
+    handler: import/bin/main
+    runtime: go1.x
+    package:
+      include:
+        - ./import/bin/**
+    events:
+      - s3:
+          bucket: import
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: input/
+            - suffix: .xlsx
+      - s3:
+          bucket: import
+          event: s3:ObjectCreated:*
+          rules:
+            - prefix: input/
+            - suffix: .csv
+    environment:
+      QUESTION_TABLE: ${cf:iip-question-${self:provider.stage}.QuestionsTableName}
+
+resources:
+  Resources:
+    S3BucketImport:
+      Type: 'AWS::S3::Bucket'
+      Properties:
+        BucketName: iip-questions
+        BucketEncryption:
+          ServerSideEncryptionConfiguration: 
+            - ServerSideEncryptionByDefault: 
+                SSEAlgorithm: AES256
+    ImportLambdaPermissionImportS3:
+      Type: "AWS::Lambda::Permission"
+      Properties:
+        FunctionName:
+          "Fn::GetAtt":
+            - ImportLambdaFunction
+            - Arn
+        Principal: "s3.amazonaws.com"
+        Action: "lambda:InvokeFunction"
+        SourceAccount:
+          Ref: AWS::AccountId
+        SourceArn: "arn:aws:s3:::iip-questions"
+  Outputs:
+    ImportBucketName:
+      Description: Bucket for import files
+      Value: !Ref S3BucketImport
+      Export: ${self:service}:${self:provider.stage}:ImportBucketName
