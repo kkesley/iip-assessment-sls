@@ -11,6 +11,16 @@ provider:
     name: ${cf:iip-bucket.ApiDeploymentBucket}
     serverSideEncryption: AES256
   deploymentPrefix: fn/import
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - s3:GetObject
+      Resource: arn:aws:s3:::iip-questions
+    - Effect: 'Allow'
+      Action:
+        - dynamodb:BatchWriteItem
+        - dynamodb:Query
+      Resource: ${cf:iip-question-${self:provider.stage}.ResultsTableArn}
 
 functions:
   import:
