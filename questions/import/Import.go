@@ -169,6 +169,7 @@ func updateExcelSheet(request Request, newQuestions []Question, surveyID string,
 
 func deleteUnusedQuestions(request Request, questionsForDeletion []Question) error {
 	writeRequests := make([]*dynamodb.WriteRequest, 0)
+	fmt.Println(len(writeRequests))
 	for _, question := range questionsForDeletion {
 		writeRequest, err := dynamodbattribute.MarshalMap(Question{
 			SurveyID:   question.SurveyID,
