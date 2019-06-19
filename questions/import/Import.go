@@ -140,7 +140,7 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 		}
 		newQuestions = append(newQuestions, rowQuestion)
 	}
-	fmt.Println(newQuestions)
+
 	//write new question
 	if err := saveNewQuestions(request, newQuestions); err != nil {
 		return err
@@ -183,7 +183,12 @@ func deleteUnusedQuestions(request Request, questionsForDeletion []Question) err
 			},
 		})
 	}
+	return batchWriteDynamoDB(request, writeRequests)
+}
+
+func batchWriteDynamoDB(request Request, writeRequests []*dynamodb.WriteRequest) error {
 	writeRequestsChunks := funk.Chunk(writeRequests, 25).([][]*dynamodb.WriteRequest)
+	fmt.Println(writeRequestsChunks)
 	for _, chunk := range writeRequestsChunks {
 		output, err := request.App.DynamoService.BatchWriteItem(&dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]*dynamodb.WriteRequest{
@@ -194,7 +199,7 @@ func deleteUnusedQuestions(request Request, questionsForDeletion []Question) err
 			return err
 		}
 		if len(output.UnprocessedItems) > 0 {
-			return errors.New("There's an unprocessed item in `deleteUnusedQuestion`")
+			return errors.New("There's an unprocessed item in `saveNewQuestions`")
 		}
 	}
 	return nil
@@ -213,21 +218,7 @@ func saveNewQuestions(request Request, newQuestions []Question) error {
 			},
 		})
 	}
-	writeRequestsChunks := funk.Chunk(writeRequests, 25).([][]*dynamodb.WriteRequest)
-	for _, chunk := range writeRequestsChunks {
-		output, err := request.App.DynamoService.BatchWriteItem(&dynamodb.BatchWriteItemInput{
-			RequestItems: map[string][]*dynamodb.WriteRequest{
-				os.Getenv("QUESTION_TABLE"): chunk,
-			},
-		})
-		if err != nil {
-			return err
-		}
-		if len(output.UnprocessedItems) > 0 {
-			return errors.New("There's an unprocessed item in `saveNewQuestions`")
-		}
-	}
-	return nil
+	return batchWriteDynamoDB(request, writeRequests)
 }
 
 //registerOldQuestionsForDeletion compare oldQuestions and newQuestions.
