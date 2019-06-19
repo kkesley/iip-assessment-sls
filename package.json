@@ -4,7 +4,7 @@
   "description": "",
   "scripts": {
     "build:dev": "git checkout -B development && git merge master && git push origin development && git checkout master",
-    "build:dev:questions": "npm run build:dev && aws codebuild start-build --cli-input-json file://questions/_build-config/development.json --profile vo --region ap-southeast-1"
+    "build:dev:questions": "npm run build:dev && aws codebuild start-build --cli-input-json file://questions/_build/development.json --profile vo --region ap-southeast-1"
   },
   "repository": {
     "type": "git",
