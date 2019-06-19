@@ -8,5 +8,5 @@
         "type": "PLAINTEXT"
       }
     ],
-    "buildspecOverride": "./questions/_build-config/buildspec.yml"
+    "buildspecOverride": "./questions/_build/buildspec.yml"
 }
