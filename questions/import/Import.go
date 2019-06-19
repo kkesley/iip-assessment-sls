@@ -188,7 +188,6 @@ func deleteUnusedQuestions(request Request, questionsForDeletion []Question) err
 
 func batchWriteDynamoDB(request Request, writeRequests []*dynamodb.WriteRequest) error {
 	writeRequestsChunks := funk.Chunk(writeRequests, 25).([][]*dynamodb.WriteRequest)
-	fmt.Println(writeRequestsChunks)
 	for _, chunk := range writeRequestsChunks {
 		output, err := request.App.DynamoService.BatchWriteItem(&dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]*dynamodb.WriteRequest{
