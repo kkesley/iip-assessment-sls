@@ -20,7 +20,7 @@ provider:
       Action:
         - dynamodb:BatchWriteItem
         - dynamodb:Query
-      Resource: ${cf:iip-question-${self:provider.stage}.ResultsTableArn}
+      Resource: ${cf:iip-question-${self:provider.stage}.QuestionsTableArn}
 
 functions:
   import:
