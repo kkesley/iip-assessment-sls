@@ -56,6 +56,8 @@ func queryHandler(questions *[]Question) func(page *dynamodb.QueryOutput, lastPa
 			fmt.Printf("\nCould not unmarshal AWS data: err = %v\n", err)
 			return true
 		}
+		fmt.Println(lastPage)
+		fmt.Println(len(questionsInAPage))
 		//append the questions in this page to master array from arguments
 		*questions = append(*questions, questionsInAPage...)
 
@@ -115,10 +117,9 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 
 	//get new questions from excel
 	rows := file.GetRows(sheet)
-	fmt.Println(len(rows))
 	for rowIdx, row := range rows {
 		//ignore headers and unrelated data. Row should start at index 2 (3rd row)
-		if rowIdx <= 2 {
+		if rowIdx < 2 {
 			continue
 		}
 		rowQuestion := Question{
@@ -219,7 +220,6 @@ func saveNewQuestions(request Request, newQuestions []Question) error {
 			},
 		})
 	}
-	fmt.Println(len(newQuestions))
 	return batchWriteDynamoDB(request, funk.Shuffle(writeRequests).([]*dynamodb.WriteRequest))
 }
 
