@@ -115,6 +115,7 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 
 	//get new questions from excel
 	rows := file.GetRows(sheet)
+	fmt.Println(len(rows))
 	for rowIdx, row := range rows {
 		//ignore headers and unrelated data. Row should start at index 2 (3rd row)
 		if rowIdx <= 2 {
