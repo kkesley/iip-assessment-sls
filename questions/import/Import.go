@@ -149,6 +149,7 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 	//identify deleted questions by comparing newQuestions and oldQuestions
 	questionsForDeletion := registerOldQuestionsForDeletion(oldQuestions, newQuestions)
 	if len(questionsForDeletion) > 0 {
+		fmt.Println(questionsForDeletion)
 		if err := deleteUnusedQuestions(request, questionsForDeletion); err != nil {
 			return err
 		}
