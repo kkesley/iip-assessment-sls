@@ -16,7 +16,7 @@ provider:
       Action:
         - s3:GetObject
         - s3:PutObject
-      Resource: arn:aws:s3:::iip-questions
+      Resource: arn:aws:s3:::iip-questions/*
     - Effect: 'Allow'
       Action:
         - dynamodb:BatchWriteItem
