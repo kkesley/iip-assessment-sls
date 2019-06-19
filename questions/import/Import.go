@@ -56,8 +56,6 @@ func queryHandler(questions *[]Question) func(page *dynamodb.QueryOutput, lastPa
 			fmt.Printf("\nCould not unmarshal AWS data: err = %v\n", err)
 			return true
 		}
-		fmt.Println(lastPage)
-		fmt.Println(len(questionsInAPage))
 		//append the questions in this page to master array from arguments
 		*questions = append(*questions, questionsInAPage...)
 
@@ -151,7 +149,6 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 	//identify deleted questions by comparing newQuestions and oldQuestions
 	questionsForDeletion := registerOldQuestionsForDeletion(oldQuestions, newQuestions)
 	if len(questionsForDeletion) > 0 {
-		fmt.Println(len(questionsForDeletion))
 		if err := deleteUnusedQuestions(request, questionsForDeletion); err != nil {
 			return err
 		}
@@ -190,8 +187,11 @@ func deleteUnusedQuestions(request Request, questionsForDeletion []Question) err
 }
 
 func batchWriteDynamoDB(request Request, writeRequests []*dynamodb.WriteRequest) error {
+	fmt.Println(len(writeRequests))
 	writeRequestsChunks := funk.Chunk(writeRequests, 25).([][]*dynamodb.WriteRequest)
+	fmt.Println("CHUNKS:")
 	for _, chunk := range writeRequestsChunks {
+		fmt.Println(len(chunk))
 		output, err := request.App.DynamoService.BatchWriteItem(&dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]*dynamodb.WriteRequest{
 				os.Getenv("QUESTION_TABLE"): chunk,
