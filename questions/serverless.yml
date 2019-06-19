@@ -11,6 +11,7 @@ provider:
     name: ${cf:iip-bucket.ApiDeploymentBucket}
     serverSideEncryption: AES256
   deploymentPrefix: fn/import
+  logRetentionInDays: 14
   iamRoleStatements:
     - Effect: 'Allow'
       Action:

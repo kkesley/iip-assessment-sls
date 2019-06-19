@@ -31,7 +31,7 @@ func GetQuestions(app App, surveyID string) ([]Question, error) {
 				S: aws.String(surveyID),
 			},
 			":question_id": &dynamodb.AttributeValue{
-				S: aws.String("_"),
+				S: aws.String("!"), //`!` used because it's a smaller character based on ASCII table
 			},
 		},
 		TableName: aws.String(os.Getenv("QUESTION_TABLE")),
@@ -187,11 +187,8 @@ func deleteUnusedQuestions(request Request, questionsForDeletion []Question) err
 }
 
 func batchWriteDynamoDB(request Request, writeRequests []*dynamodb.WriteRequest) error {
-	fmt.Println(len(writeRequests))
 	writeRequestsChunks := funk.Chunk(writeRequests, 25).([][]*dynamodb.WriteRequest)
-	fmt.Println("CHUNKS:")
 	for _, chunk := range writeRequestsChunks {
-		fmt.Println(len(chunk))
 		output, err := request.App.DynamoService.BatchWriteItem(&dynamodb.BatchWriteItemInput{
 			RequestItems: map[string][]*dynamodb.WriteRequest{
 				os.Getenv("QUESTION_TABLE"): chunk,
