@@ -8,7 +8,7 @@ provider:
   stage: ${opt:stage, 'dev'}
   region: ${opt:region, 'ap-southeast-1'}
   deploymentBucket:
-    name: ${cf:vo-bucket.ApiDeploymentBucket}
+    name: ${cf:iip-bucket.ApiDeploymentBucket}
     serverSideEncryption: AES256
   deploymentPrefix: fn/import
 
