@@ -98,7 +98,7 @@ func saveUpdatedExcel(request Request, file *excelize.File) error {
 
 //importSingleSheet process a single sheet from `Import`
 func importSingleSheet(request Request, file *excelize.File, sheet string) error {
-	surveyID := strings.TrimSpace(file.GetCellValue(sheet, "B1"))
+	surveyID := strings.ToUpper(strings.TrimSpace(file.GetCellValue(sheet, "B1")))
 	oldQuestions := make([]Question, 0)
 	newQuestions := make([]Question, 0)
 
@@ -143,13 +143,13 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 
 	//write new question
 	if err := saveNewQuestions(request, newQuestions); err != nil {
+		fmt.Println(len(newQuestions))
 		return err
 	}
 
 	//identify deleted questions by comparing newQuestions and oldQuestions
 	questionsForDeletion := registerOldQuestionsForDeletion(oldQuestions, newQuestions)
 	if len(questionsForDeletion) > 0 {
-		fmt.Println(questionsForDeletion)
 		if err := deleteUnusedQuestions(request, questionsForDeletion); err != nil {
 			return err
 		}
