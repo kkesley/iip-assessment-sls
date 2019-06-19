@@ -31,7 +31,7 @@ func downloadFile(svc s3iface.S3API, bucket string, key string) ([]byte, error) 
 	fmt.Println(bucket)
 	fmt.Println(key)
 	if err != nil {
-		fmt.Println("failed do download s3")
+		fmt.Println(err)
 		return nil, err
 	}
 
