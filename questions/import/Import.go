@@ -217,7 +217,7 @@ func saveNewQuestions(request Request, newQuestions []Question) error {
 			},
 		})
 	}
-	return batchWriteDynamoDB(request, writeRequests)
+	return batchWriteDynamoDB(request, funk.Shuffle(writeRequests).([]*dynamodb.WriteRequest))
 }
 
 //registerOldQuestionsForDeletion compare oldQuestions and newQuestions.
