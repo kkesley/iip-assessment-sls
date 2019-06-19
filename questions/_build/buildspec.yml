@@ -10,6 +10,7 @@ phases:
       - env GOOS=linux go build -ldflags="-s -w" -o questions/import/bin/main questions/import/main.go questions/import/Import.go questions/import/Question.go questions/import/Request.go
 
       # deploy using serverless framework
+      - SLS_DEBUG=*
       - cd $CODEBUILD_SRC_DIR/questions; sls deploy --stage $STAGE --verbose
 cache:
   paths:
