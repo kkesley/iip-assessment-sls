@@ -1,0 +1,18 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - npm install
+      - export GO111MODULE=on
+  build:
+    commands:
+      # build import function
+      - env GOOS=linux go build -ldflags="-s -w" -o questions/import/bin/main questions/import/main.go questions/import/Import.go questions/import/Question.go questions/import/Request.go
+
+      # deploy using serverless framework
+      - cd $CODEBUILD_SRC_DIR/questions; sls deploy --stage $STAGE --verbose
+cache:
+  paths:
+    - '/go/src/**/*'
+    - '/go/pkg/mod/**/*'
+    - 'node_modules/**/*'

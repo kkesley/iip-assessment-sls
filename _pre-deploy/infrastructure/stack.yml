@@ -7,6 +7,59 @@ Resources:
         ServerSideEncryptionConfiguration: 
           - ServerSideEncryptionByDefault: 
               SSEAlgorithm: AES256
+  CodebuildRole:
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "codebuild.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: "iip-assessment-build-policy"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Action:
+                  - "cloudformation:*"
+                  - "cloudwatch:*"
+                  - "iam:*"
+                  - "lambda:*"
+                  - "logs:*"
+                  - "s3:*"
+                  - "apigateway:*"
+                  - "route53:ListHostedZones"
+                  - "events:*"
+                  - "dynamodb:*"
+                Resource: "*"
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: iip-assessment-sls
+      Description: IIP Assessment Serverless Builder
+      ServiceRole: !GetAtt CodebuildRole.Arn
+      Artifacts:
+        Type: no_artifacts
+      BadgeEnabled: true
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: kendrickkesley/codebuild-go-node
+        EnvironmentVariables:
+        - Name: key
+          Value: iip-assessment
+      Source:
+        Location: https://github.com/kkesley/iip-assessment-sls.git
+        Type: GITHUB
+      Cache:
+        Modes:
+          - LOCAL_CUSTOM_CACHE
+        Type: LOCAL
+      TimeoutInMinutes: 10
 Outputs:
   ApiDeploymentBucket:
     Description: Bucket containing API Deployments

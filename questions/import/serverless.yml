@@ -62,4 +62,5 @@ resources:
     ImportBucketName:
       Description: Bucket for import files
       Value: !Ref S3BucketImport
-      Export: ${self:service}:${self:provider.stage}:ImportBucketName
+      Export:
+        Name: ${self:service}:${self:provider.stage}:ImportBucketName

@@ -1,0 +1,12 @@
+{
+    "projectName": "iip-assessment-sls",
+    "sourceVersion": "development",
+    "environmentVariablesOverride": [
+      {
+        "name": "STAGE",
+        "value": "dev",
+        "type": "PLAINTEXT"
+      }
+    ],
+    "buildspecOverride": "./questions/_build-config/buildspec.yml"
+}

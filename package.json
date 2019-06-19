@@ -1,0 +1,19 @@
+{
+  "name": "iip-assessment-sls",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "build:dev": "git checkout -B development && git merge master && git push origin development && git checkout master",
+    "build:dev:class": "npm run build:dev && aws codebuild start-build --cli-input-json file://questions/_build-config/development.json --profile vo --region ap-southeast-1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kkesley/iip-assessment-sls.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kkesley/iip-assessment-sls/issues"
+  },
+  "homepage": "https://github.com/kkesley/iip-assessment-sls#readme"
+}
