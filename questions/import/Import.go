@@ -143,7 +143,6 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 
 	//write new question
 	if err := saveNewQuestions(request, newQuestions); err != nil {
-		fmt.Println(len(newQuestions))
 		return err
 	}
 
@@ -219,6 +218,7 @@ func saveNewQuestions(request Request, newQuestions []Question) error {
 			},
 		})
 	}
+	fmt.Println(len(newQuestions))
 	return batchWriteDynamoDB(request, funk.Shuffle(writeRequests).([]*dynamodb.WriteRequest))
 }
 
