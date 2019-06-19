@@ -135,12 +135,12 @@ func importSingleSheet(request Request, file *excelize.File, sheet string) error
 				rowQuestion.QuestionID = value
 			}
 		}
-		if len(rowQuestion.QuestionID) <= 0 {
+		if len(strings.TrimSpace(rowQuestion.QuestionID)) <= 0 {
 			rowQuestion.QuestionID = uuid.New().String()
 		}
 		newQuestions = append(newQuestions, rowQuestion)
 	}
-
+	fmt.Println(newQuestions)
 	//write new question
 	if err := saveNewQuestions(request, newQuestions); err != nil {
 		return err
